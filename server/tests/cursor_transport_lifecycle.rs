@@ -56,6 +56,32 @@ async fn actor_exit_removes_the_matching_transport_and_allows_a_new_generation()
 }
 
 #[tokio::test]
+async fn parent_metadata_rejects_empty_identifiers() {
+    let (_directory, registry) = registry().await;
+    let handle = registry
+        .get_or_create("invalid-parent-request")
+        .await
+        .unwrap();
+    for parent in [
+        cursor_server::cursor::TransportParent {
+            request_id: None,
+            tool_call_id: None,
+        },
+        cursor_server::cursor::TransportParent {
+            request_id: Some(String::new()),
+            tool_call_id: None,
+        },
+        cursor_server::cursor::TransportParent {
+            request_id: None,
+            tool_call_id: Some(String::new()),
+        },
+    ] {
+        assert!(handle.set_parent(parent).is_err());
+    }
+    handle.command(TransportCommand::Disconnect).await.unwrap();
+}
+
+#[tokio::test]
 async fn dropping_an_output_subscription_does_not_remove_the_transport() {
     let (_directory, registry) = registry().await;
     let handle = registry

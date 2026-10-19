@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use chrono::{Offset, Utc};
 use chrono_tz::Tz;
+use prost::Message;
 
 use crate::{
     cursor::{
@@ -32,11 +33,7 @@ pub(crate) async fn compile_user_message_action(
         .user_message
         .as_ref()
         .ok_or_else(|| Error::Protocol("Cursor user message action has no UserMessage".into()))?;
-    if user.message_id.is_empty() {
-        return Err(Error::Protocol(
-            "Cursor user message action has no message_id".into(),
-        ));
-    }
+    let message_id = user_message_id(user);
     let mode = if user.mode == pb::AgentMode::Unspecified as i32 {
         current_mode
     } else {
@@ -57,7 +54,7 @@ pub(crate) async fn compile_user_message_action(
     );
     let empty_context = pb::RequestContext::default();
     compile(
-        format!("user-message:{}", user.message_id),
+        format!("user-message:{message_id}"),
         super::run::mode_from_proto(mode)?,
         user,
         action.request_context.as_ref().unwrap_or(&empty_context),
@@ -66,6 +63,18 @@ pub(crate) async fn compile_user_message_action(
         blobs,
     )
     .await
+}
+
+/// Preserves Cursor's identity or derives one from the complete id-less message.
+/// Subagent kickoff retries must reuse the same input anchor and runtime event.
+pub(crate) fn user_message_id(user: &pb::UserMessage) -> String {
+    if !user.message_id.is_empty() {
+        return user.message_id.clone();
+    }
+    format!(
+        "synthetic:{}",
+        BlobId::digest(&user.encode_to_vec()).to_base64()
+    )
 }
 
 pub(crate) async fn compile_injection(
@@ -388,5 +397,60 @@ impl Time {
             timestamp: format!("{} ({utc})", now.format("%A, %b %-d, %Y, %-I:%M %p")),
             today: now.format("%A %b %-d,\n%Y").to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_message_id_preserves_explicit_identity() {
+        let user = pb::UserMessage {
+            message_id: "cursor-message-id".into(),
+            text: "subagent task".into(),
+            ..Default::default()
+        };
+        assert_eq!(user_message_id(&user), "cursor-message-id");
+    }
+
+    #[test]
+    fn user_message_id_is_stable_for_idless_retries() {
+        let user = pb::UserMessage {
+            text: "subagent task".into(),
+            mode: pb::AgentMode::Agent as i32,
+            ..Default::default()
+        };
+        let identity = user_message_id(&user);
+        assert!(identity.starts_with("synthetic:"));
+        assert_eq!(identity, user_message_id(&user.clone()));
+    }
+
+    #[test]
+    fn user_message_id_distinguishes_content_and_context() {
+        let user = pb::UserMessage {
+            text: "subagent task".into(),
+            mode: pb::AgentMode::Agent as i32,
+            ..Default::default()
+        };
+        let identity = user_message_id(&user);
+        let mut changed = user.clone();
+        changed.text = "another task".into();
+        assert_ne!(identity, user_message_id(&changed));
+
+        let mut changed = user.clone();
+        changed.mode = pb::AgentMode::Ask as i32;
+        assert_ne!(identity, user_message_id(&changed));
+
+        let mut changed = user.clone();
+        changed.selected_context = Some(pb::SelectedContext {
+            extra_context: vec!["selected repository context".into()],
+            ..Default::default()
+        });
+        assert_ne!(identity, user_message_id(&changed));
+
+        let mut changed = user;
+        changed.subagent_system_reminder = Some("different subagent instructions".into());
+        assert_ne!(identity, user_message_id(&changed));
     }
 }

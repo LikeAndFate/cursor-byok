@@ -601,8 +601,8 @@ async fn parent_request_does_not_need_to_resolve_to_an_active_run() {
     assert_run_starts_without_parent_dependency(
         "finished-parent-request",
         Some(TransportParent {
-            request_id: "already-finished-parent".into(),
-            tool_call_id: "original-tool-call".into(),
+            request_id: Some("already-finished-parent".into()),
+            tool_call_id: Some("original-tool-call".into()),
         }),
         None,
     )
@@ -617,6 +617,210 @@ async fn subagent_type_does_not_require_parent_metadata() {
         Some("generalPurpose"),
     )
     .await;
+}
+
+#[tokio::test]
+async fn subagent_parent_request_header_can_be_sent_alone() {
+    assert_run_starts_without_parent_dependency(
+        "request-only-subagent",
+        Some(TransportParent {
+            request_id: Some("parent-request".into()),
+            tool_call_id: None,
+        }),
+        Some("generalPurpose"),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn subagent_parent_tool_call_header_can_be_sent_alone() {
+    assert_run_starts_without_parent_dependency(
+        "tool-call-only-subagent",
+        Some(TransportParent {
+            request_id: None,
+            tool_call_id: Some("parent-task-call".into()),
+        }),
+        Some("generalPurpose"),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn subagent_run_without_message_id_starts_and_completes() {
+    let (_directory, store) = fixtures::temp_store().await;
+    let provider = fake_provider::FakeProvider::default();
+    provider.push(completed_subagent_response());
+    let assets = PromptAssets::load(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("prompt/cursor")
+            .as_path(),
+    )
+    .unwrap();
+    let registry = TransportRegistry::new(
+        store.clone(),
+        Arc::new(provider.clone()),
+        PromptCompiler::new(assets),
+    );
+    let terminal = run_to_terminal(
+        &registry,
+        "empty-message-id-subagent",
+        Some(TransportParent {
+            request_id: None,
+            tool_call_id: Some("parent-task-call".into()),
+        }),
+        subagent_run("explore the repository", "empty-message-id-conversation"),
+    )
+    .await;
+
+    assert!(terminal.get("error").is_none(), "{terminal}");
+    assert_eq!(provider.requests().len(), 1);
+    let status: String = sqlx::query_scalar("SELECT status FROM runs WHERE cursor_request_id = ?")
+        .bind("empty-message-id-subagent")
+        .fetch_one(store.pool())
+        .await
+        .unwrap();
+    assert_eq!(status, "completed");
+    let messages = store
+        .load_current_messages(&cursor_server::model::ConversationId::new(
+            "empty-message-id-conversation",
+        ))
+        .await
+        .unwrap();
+    assert!(messages.iter().any(|message| {
+        matches!(&message.content, MessageContent::Assistant { text, .. } if text == "subagent finished")
+    }));
+}
+
+#[tokio::test]
+async fn subagent_retries_without_message_id_stay_idempotent() {
+    let (_directory, store) = fixtures::temp_store().await;
+    let provider = fake_provider::FakeProvider::default();
+    let assets = PromptAssets::load(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("prompt/cursor")
+            .as_path(),
+    )
+    .unwrap();
+    let registry = TransportRegistry::new(
+        store.clone(),
+        Arc::new(provider.clone()),
+        PromptCompiler::new(assets),
+    );
+    let conversation = "empty-message-id-retry-conversation";
+
+    for (request_id, text, expected_runtime_messages) in [
+        ("empty-message-id-first", "same subagent task", 1_i64),
+        ("empty-message-id-retry", "same subagent task", 1),
+        ("empty-message-id-other", "a different subagent task", 2),
+    ] {
+        provider.push(completed_subagent_response());
+        let message = subagent_run(text, conversation);
+        let terminal = run_to_terminal(&registry, request_id, None, message).await;
+        assert!(terminal.get("error").is_none(), "{terminal}");
+        wait_until_idle(store.pool(), conversation).await;
+        let runtime_messages: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM messages
+             WHERE conversation_id = ? AND message_id LIKE 'runtime:%'",
+        )
+        .bind(conversation)
+        .fetch_one(store.pool())
+        .await
+        .unwrap();
+        assert_eq!(runtime_messages, expected_runtime_messages);
+    }
+
+    let requests = provider.requests();
+    assert_eq!(requests.len(), 3);
+    assert_eq!(
+        requests[0], requests[1],
+        "retries must reuse the same history"
+    );
+}
+
+fn completed_subagent_response() -> Vec<ModelEvent> {
+    vec![
+        ModelEvent::Start {
+            model_call_id: "subagent-model-call".into(),
+        },
+        ModelEvent::TextStart,
+        ModelEvent::TextDelta("subagent finished".into()),
+        ModelEvent::TextEnd,
+        ModelEvent::Done(FinishReason::Stop),
+    ]
+}
+
+fn subagent_run(text: &str, conversation_id: &str) -> pb::AgentClientMessage {
+    let mut message = protocol_client_run(text, "");
+    let Some(pb::agent_client_message::Message::RunRequest(request)) = message.message.as_mut()
+    else {
+        unreachable!()
+    };
+    request.conversation_id = Some(conversation_id.into());
+    request.subagent_type_name = Some("generalPurpose".into());
+    message
+}
+
+async fn run_to_terminal(
+    registry: &TransportRegistry,
+    request_id: &str,
+    parent: Option<TransportParent>,
+    message: pb::AgentClientMessage,
+) -> serde_json::Value {
+    let handle = registry.get_or_create(request_id).await.unwrap();
+    if let Some(parent) = parent {
+        handle.set_parent(parent).unwrap();
+    }
+    let mut output = handle.subscribe();
+    handle
+        .command(TransportCommand::Append {
+            seqno: 0,
+            message: Box::new(message),
+        })
+        .await
+        .unwrap();
+
+    let mut seqno = 1;
+    loop {
+        let frame = tokio::time::timeout(std::time::Duration::from_secs(5), output.recv())
+            .await
+            .unwrap()
+            .expect("RunSSE closed before EndStream");
+        let (flags, payload) = connect::decode_frames(&frame).unwrap().pop().unwrap();
+        if flags & connect::END_STREAM_FLAG != 0 {
+            return serde_json::from_slice::<serde_json::Value>(&payload).unwrap();
+        }
+        let server = pb::AgentServerMessage::decode(payload).unwrap();
+        if let Some(pb::agent_server_message::Message::KvServerMessage(kv)) = server.message {
+            handle
+                .command(TransportCommand::Append {
+                    seqno,
+                    message: Box::new(kv_ack(kv.id)),
+                })
+                .await
+                .unwrap();
+            seqno += 1;
+        }
+    }
+}
+
+async fn wait_until_idle(pool: &sqlx::SqlitePool, conversation_id: &str) {
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            let active: Option<String> = sqlx::query_scalar(
+                "SELECT active_run_id FROM conversations WHERE conversation_id = ?",
+            )
+            .bind(conversation_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+            if active.is_none() {
+                return;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("conversation did not become idle");
 }
 
 async fn assert_run_starts_without_parent_dependency(

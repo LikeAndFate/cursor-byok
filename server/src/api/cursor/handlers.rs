@@ -373,13 +373,11 @@ fn parent_headers(headers: &HeaderMap) -> Result<Option<TransportParent>> {
     let tool_call_id = header_text(headers, "x-parent-agent-tool-call-id")?;
     match (request_id, tool_call_id) {
         (None, None) => Ok(None),
-        (Some(request_id), Some(tool_call_id)) => Ok(Some(TransportParent {
-            request_id: request_id.into(),
-            tool_call_id: tool_call_id.into(),
+        // Cursor sends these independently; retain whichever parent id is present.
+        (request_id, tool_call_id) => Ok(Some(TransportParent {
+            request_id: request_id.map(str::to_owned),
+            tool_call_id: tool_call_id.map(str::to_owned),
         })),
-        _ => Err(crate::Error::Protocol(
-            "Cursor subagent request must include both parent headers".into(),
-        )),
     }
 }
 
@@ -389,4 +387,49 @@ fn header_text<'a>(headers: &'a HeaderMap, name: &str) -> Result<Option<&'a str>
         .map(|value| value.to_str())
         .transpose()
         .map_err(|error| crate::Error::Protocol(format!("invalid {name} header: {error}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parent_headers_are_independently_optional() {
+        for (request_id, tool_call_id) in [
+            (None, None),
+            (Some("parent-request"), None),
+            (None, Some("parent-task-call")),
+            (Some("parent-request"), Some("parent-task-call")),
+        ] {
+            let mut headers = HeaderMap::new();
+            if let Some(value) = request_id {
+                headers.insert("x-parent-request-id", HeaderValue::from_static(value));
+            }
+            if let Some(value) = tool_call_id {
+                headers.insert(
+                    "x-parent-agent-tool-call-id",
+                    HeaderValue::from_static(value),
+                );
+            }
+            let expected = if request_id.is_none() && tool_call_id.is_none() {
+                None
+            } else {
+                Some(TransportParent {
+                    request_id: request_id.map(str::to_owned),
+                    tool_call_id: tool_call_id.map(str::to_owned),
+                })
+            };
+            assert_eq!(parent_headers(&headers).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn parent_headers_still_reject_invalid_header_text() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-parent-request-id",
+            HeaderValue::from_bytes(b"\xff").unwrap(),
+        );
+        assert!(parent_headers(&headers).is_err());
+    }
 }

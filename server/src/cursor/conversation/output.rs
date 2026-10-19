@@ -14,7 +14,8 @@ use crate::{
             CheckpointBuilder,
         },
         compile::{
-            compile_injection, compile_user_message_action, CursorRunContext, RuntimeAction,
+            compile_injection, compile_user_message_action, user_message_id, CursorRunContext,
+            RuntimeAction,
         },
         prompting::PromptCompiler,
         protocol::events,
@@ -839,9 +840,10 @@ impl ConversationOutput {
         interrupted_rounds: &mut HashSet<ToolRoundId>,
         interrupted_tool_calls: &mut HashSet<String>,
     ) -> Result<()> {
-        let user_message = action.user_message.clone().ok_or_else(|| {
+        let mut user_message = action.user_message.clone().ok_or_else(|| {
             Error::Protocol("Cursor user message action has no UserMessage".into())
         })?;
+        user_message.message_id = user_message_id(&user_message);
         let injection_id = format!("user-message:{}", user_message.message_id);
         let message = compile_user_message_action(
             &action,

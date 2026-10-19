@@ -587,11 +587,16 @@ async fn runtime_user_message_action_interrupts_and_continues_with_new_message()
 
 #[tokio::test]
 async fn runtime_user_message_reports_delivered_and_appended() {
-    // A runtime user message is queued into `pending_injections` under a
-    // `user-message:{id}` key, but the commit correlation only handled the
-    // `inject-context:` prefix, so the entry was never cleared: the client
-    // never saw Delivered/UserMessageAppended and every later tool round was
-    // detached (a hang). This asserts the full delivery sequence.
+    assert_runtime_user_message_delivery("queued-user").await;
+}
+
+#[tokio::test]
+async fn runtime_user_message_without_message_id_reports_delivered_and_appended() {
+    assert_runtime_user_message_delivery("").await;
+}
+
+async fn assert_runtime_user_message_delivery(message_id: &str) {
+    // Queued, delivered, appended, and checkpoint messages must share one identity.
     let (_directory, store) = fixtures::temp_store().await;
     let provider = fake_provider::FakeProvider::default();
     provider.push_pending();
@@ -636,10 +641,31 @@ async fn runtime_user_message_reports_delivered_and_appended() {
             acknowledge_kv(&handle, &mut append_seqno, &frame).await;
         }
     }
+    let mut message = runtime_user_message();
+    let Some(pb::agent_client_message::Message::ConversationAction(action)) =
+        message.message.as_mut()
+    else {
+        unreachable!()
+    };
+    let Some(pb::conversation_action::Action::UserMessageAction(action)) = action.action.as_mut()
+    else {
+        unreachable!()
+    };
+    let user = action.user_message.as_mut().unwrap();
+    user.message_id = message_id.into();
+    let expected_message_id = if message_id.is_empty() {
+        format!(
+            "synthetic:{}",
+            cursor_server::store::BlobId::digest(&user.encode_to_vec()).to_base64()
+        )
+    } else {
+        message_id.to_owned()
+    };
+    let expected_injection_id = format!("user-message:{expected_message_id}");
     handle
         .command(TransportCommand::Append {
             seqno: append_seqno,
-            message: Box::new(runtime_user_message()),
+            message: Box::new(message),
         })
         .await
         .unwrap();
@@ -660,7 +686,7 @@ async fn runtime_user_message_reports_delivered_and_appended() {
         if let Some(pb::agent_server_message::Message::InteractionUpdate(update)) = server.message {
             match update.message {
                 Some(pb::interaction_update::Message::ContextInjectionState(update)) => {
-                    assert_eq!(update.injection_id, "user-message:queued-user");
+                    assert_eq!(update.injection_id, expected_injection_id);
                     match update.state.and_then(|state| state.state) {
                         Some(pb::context_injection_state::State::Queued(_)) => {
                             protocol_events.push("queued")
@@ -675,7 +701,7 @@ async fn runtime_user_message_reports_delivered_and_appended() {
                 }
                 Some(pb::interaction_update::Message::UserMessageAppended(update)) => {
                     let user = update.user_message.expect("appended user message");
-                    assert_eq!(user.message_id, "queued-user");
+                    assert_eq!(user.message_id, expected_message_id);
                     assert_eq!(user.text, "queued follow-up");
                     protocol_events.push("user_message_appended");
                 }
