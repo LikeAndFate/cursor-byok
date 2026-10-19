@@ -3,10 +3,7 @@ import { stat, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
 const assetSpecs = [
-  ["macos-arm64", ".tar.gz"],
-  ["macos-amd64", ".tar.gz"],
   ["windows-amd64", ".zip"],
-  ["linux-amd64", ".tar.gz"],
 ];
 
 function readOptions(args) {
@@ -39,7 +36,7 @@ async function main() {
   const repository = required(options, "repository");
   const assetsDir = resolve(required(options, "assets-dir"));
   const output = resolve(required(options, "output"));
-  const releaseNotes = options.get("notes")?.trim() || `Cursor BYOK v${version}`;
+  const releaseNotes = options.get("notes")?.trim() || `Cursor BYTK v${version}`;
 
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
     throw new Error(`invalid semantic version: ${version}`);

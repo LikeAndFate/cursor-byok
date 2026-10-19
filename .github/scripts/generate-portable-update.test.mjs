@@ -11,6 +11,7 @@ test("generates a signed Windows portable updater manifest", () => {
   });
 
   assert.equal(manifest.version, "1.2.3-beta.1");
+  assert.equal(manifest.notes, "Cursor BYTK v1.2.3-beta.1");
   assert.deepEqual(Object.keys(manifest.platforms), ["windows-x86_64"]);
   assert.equal(manifest.platforms["windows-x86_64"].signature, "signed-payload");
   assert.equal(
