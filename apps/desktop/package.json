@@ -1,7 +1,7 @@
 {
   "name": "cursor-byok-desktop",
   "version": "1.0.2-beta.1",
-  "description": "Cursor BYOK desktop management application",
+  "description": "Cursor BYTK desktop management application",
   "type": "module",
   "scripts": {
     "start": "vite",

@@ -1751,6 +1751,18 @@
         }
       ]
     },
+    "41ee1faf3d79a004": {
+      "source": "登录系统后自动启动 Cursor BYTK。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/AppLifecycleSettingsCard.tsx",
+          "line": 116,
+          "column": 17
+        }
+      ]
+    },
     "42655ed8e4108ae2": {
       "source": "输入（非缓存）",
       "kind": "text",
@@ -2446,20 +2458,6 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 270,
           "column": 7
-        }
-      ]
-    },
-    "5d59857bf039cac9": {
-      "source": "Cursor 助手 v{version}",
-      "kind": "template",
-      "placeholders": [
-        "version"
-      ],
-      "refs": [
-        {
-          "file": "shell/AppHeader.tsx",
-          "line": 34,
-          "column": 18
         }
       ]
     },
@@ -5155,18 +5153,6 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 188,
           "column": 20
-        }
-      ]
-    },
-    "d34335433395cd3a": {
-      "source": "登录系统后自动启动 Cursor BYOK。",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "features/settings/AppLifecycleSettingsCard.tsx",
-          "line": 116,
-          "column": 17
         }
       ]
     },
