@@ -1,15 +1,19 @@
 LOCAL_TAURI_SIGNING_KEY := $(CURDIR)/.tauri/cursor-byok.local.key
 
-.PHONY: check dev-web dev-server dev-desktop build-web build-server build-desktop build-docker
+.PHONY: check dev-web dev-mobile dev-server dev-desktop build-web build-mobile build-server build-desktop build-docker
 
 check:
 	cargo fmt --all -- --check
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace --all-targets
 	npm --prefix apps/desktop run check
+	npm --prefix apps/mobile run check
 
 dev-web:
 	npm --prefix apps/desktop run dev:web
+
+dev-mobile:
+	npm --prefix apps/mobile run dev
 
 dev-server:
 	CURSOR_CONSOLE_DIR=apps/desktop/dist cargo run --package cursor-server --bin cursor-server
@@ -18,7 +22,10 @@ dev-desktop:
 	npm --prefix apps/desktop run tauri:dev
 
 build-web:
-	npm --prefix apps/desktop run build
+	npm --prefix apps/desktop run build:bundle
+
+build-mobile:
+	npm --prefix apps/mobile run build
 
 build-server:
 	cargo build --release --package cursor-server --bin cursor-server

@@ -13,6 +13,7 @@ struct OutputState {
     history: Vec<Bytes>,
     subscribers: Vec<mpsc::UnboundedSender<Bytes>>,
     closed: bool,
+    display: crate::remote::DisplayState,
 }
 
 impl OutputHub {
@@ -21,6 +22,7 @@ impl OutputHub {
         if state.closed {
             return false;
         }
+        state.display.frame(&frame);
         state.history.push(frame.clone());
         state
             .subscribers
@@ -38,6 +40,14 @@ impl OutputHub {
             state.subscribers.push(sender);
         }
         receiver
+    }
+
+    pub(crate) fn remote_new_turn(&self) {
+        self.state.lock().display.new_turn();
+    }
+
+    pub(crate) fn remote_display(&self) -> crate::remote::DisplayState {
+        self.state.lock().display.clone()
     }
 
     pub fn close(&self) -> bool {

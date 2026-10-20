@@ -1,6 +1,14 @@
 //! Defines commands accepted by a Conversation runtime.
 
-use crate::{cursor::protocol::proto::agent::v1 as pb, Error};
+use tokio::sync::oneshot;
+
+use crate::{
+    cursor::{
+        conversation::{RemoteCommand, RemoteResult, RemoteState, RemoteTarget},
+        protocol::proto::agent::v1 as pb,
+    },
+    Error,
+};
 
 #[derive(Debug)]
 pub enum RunFinish {
@@ -24,6 +32,14 @@ pub enum TransportCommand {
     RunFinished {
         generation: u64,
         finish: RunFinish,
+    },
+    RemoteState {
+        result: oneshot::Sender<Option<RemoteState>>,
+    },
+    RemoteControl {
+        target: RemoteTarget,
+        command: RemoteCommand,
+        result: oneshot::Sender<RemoteResult>,
     },
     Disconnect,
 }

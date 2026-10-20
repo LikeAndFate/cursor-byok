@@ -320,6 +320,17 @@ pub(crate) async fn prepare(
         };
         RunAction::Resume { pending_tool_round }
     };
+    if let Err(error) = crate::remote::sessions::record_request(
+        store,
+        conversation_id.as_str(),
+        request,
+        &request_context,
+        &model.model_id,
+    )
+    .await
+    {
+        tracing::warn!(%error, "remote presentation metadata unavailable");
+    }
     let exec = exec_context(
         request,
         &request_context,

@@ -21,6 +21,12 @@ use super::{context, images};
 pub(crate) enum RuntimeAction {
     Inject(pb::InjectContextAction),
     UserMessage(pb::UserMessageAction),
+    RemoteAppend {
+        command_id: String,
+        text: String,
+        accepted_commands: std::sync::Arc<parking_lot::Mutex<std::collections::HashSet<String>>>,
+        result: tokio::sync::oneshot::Sender<crate::cursor::conversation::RemoteResult>,
+    },
 }
 
 pub(crate) async fn compile_user_message_action(

@@ -1,7 +1,7 @@
 //! Maps request IDs to active transport handles.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -32,6 +32,7 @@ pub struct TransportRegistry {
 struct RegistryInner {
     local: Mutex<HashMap<String, LocalTransport>>,
     next_local_generation: AtomicU64,
+    remote_recent: parking_lot::Mutex<VecDeque<(String, String, crate::remote::DisplayState)>>,
     upstream: Mutex<HashMap<String, u64>>,
     route_changed: Notify,
     store: Store,
@@ -114,6 +115,7 @@ impl TransportRegistry {
             inner: Arc::new(RegistryInner {
                 local: Mutex::new(HashMap::new()),
                 next_local_generation: AtomicU64::new(1),
+                remote_recent: parking_lot::Mutex::new(VecDeque::new()),
                 upstream: Mutex::new(HashMap::new()),
                 route_changed: Notify::new(),
                 traces: CursorTraceService::new(store.clone()),
@@ -203,7 +205,21 @@ impl TransportRegistry {
                     .get(&request_id)
                     .is_some_and(|transport| transport.generation == generation)
                 {
-                    local.remove(&request_id);
+                    if let Some(transport) = local.remove(&request_id) {
+                        if transport.handle.parent().is_none() {
+                            if let Some(id) = transport.handle.conversation_id() {
+                                let mut recent = registry.remote_recent.lock();
+                                recent.push_back((
+                                    id.to_owned(),
+                                    transport.handle.request_id().to_owned(),
+                                    transport.handle.remote_display(),
+                                ));
+                                while recent.len() > 64 {
+                                    recent.pop_front();
+                                }
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -217,6 +233,22 @@ impl TransportRegistry {
             .await
             .get(request_id)
             .map(|transport| transport.handle.clone())
+    }
+
+    pub(crate) async fn local_handles(&self) -> Vec<TransportHandle> {
+        self.inner
+            .local
+            .lock()
+            .await
+            .values()
+            .map(|transport| transport.handle.clone())
+            .collect()
+    }
+
+    pub(crate) fn take_remote_finished(
+        &self,
+    ) -> Vec<(String, String, crate::remote::DisplayState)> {
+        self.inner.remote_recent.lock().drain(..).collect()
     }
 
     pub async fn mark_upstream(&self, request_id: &str) {

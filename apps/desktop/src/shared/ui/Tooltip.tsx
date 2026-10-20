@@ -20,7 +20,7 @@ export function useTooltip() {
 
 export function TooltipProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<{ anchor: TooltipAnchor; id?: string; content: ReactNode } | null>(null);
-  const hideTimer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const hideTimer = useRef<number | null>(null);
   const clearHide = () => {
     if (hideTimer.current !== null) {
       window.clearTimeout(hideTimer.current);

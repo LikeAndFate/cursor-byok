@@ -26,6 +26,18 @@
         }
       ]
     },
+    "00a99937d557fa6e": {
+      "source": "暂无已授权设备",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 109,
+          "column": 354
+        }
+      ]
+    },
     "01f3e69a5a9b2c9b": {
       "source": "访问模型服务所需的密钥。",
       "kind": "text",
@@ -83,6 +95,23 @@
         }
       ]
     },
+    "02d82e6d757ee1fe": {
+      "source": "开启手机远控",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 98,
+          "column": 23
+        },
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 99,
+          "column": 24
+        }
+      ]
+    },
     "03ff62ab4b818492": {
       "source": "缓存写入：{tokens} × ${price}/1M = {cost}",
       "kind": "template",
@@ -131,7 +160,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 183,
+          "line": 184,
           "column": 82
         },
         {
@@ -321,6 +350,18 @@
         }
       ]
     },
+    "0be29a20b026eb04": {
+      "source": "Tailscale Serve 命令",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 107,
+          "column": 52
+        }
+      ]
+    },
     "0c70665b6eb65f1a": {
       "source": "否",
       "kind": "text",
@@ -372,7 +413,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 100,
+          "line": 101,
           "column": 38
         }
       ]
@@ -401,7 +442,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 279,
+          "line": 281,
           "column": 26
         }
       ]
@@ -781,7 +822,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 283,
+          "line": 285,
           "column": 131
         }
       ]
@@ -807,17 +848,17 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 70,
+          "line": 71,
           "column": 42
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 188,
+          "line": 189,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 215,
+          "line": 216,
           "column": 58
         }
       ]
@@ -916,7 +957,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 256,
+          "line": 258,
           "column": 43
         }
       ]
@@ -933,6 +974,18 @@
         }
       ]
     },
+    "22bd81a0f7a133d4": {
+      "source": "配对手机",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 63
+        }
+      ]
+    },
     "22c6b4eb4caee6ae": {
       "source": "代理设置已保存",
       "kind": "text",
@@ -940,7 +993,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 125,
+          "line": 126,
           "column": 15
         }
       ]
@@ -964,7 +1017,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 306,
+          "line": 308,
           "column": 24
         }
       ]
@@ -1152,12 +1205,12 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 179,
+          "line": 180,
           "column": 81
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 298,
+          "line": 300,
           "column": 22
         },
         {
@@ -1263,7 +1316,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 149,
+          "line": 150,
           "column": 15
         }
       ]
@@ -1413,7 +1466,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 241,
+          "line": 243,
           "column": 27
         }
       ]
@@ -1423,6 +1476,11 @@
       "kind": "text",
       "placeholders": [],
       "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 594
+        },
         {
           "file": "shared/ui/ConfirmDialog.tsx",
           "line": 4,
@@ -1486,7 +1544,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 308,
+          "line": 310,
           "column": 42
         }
       ]
@@ -1551,7 +1609,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 290,
+          "line": 292,
           "column": 14
         }
       ]
@@ -1580,8 +1638,20 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 241,
+          "line": 243,
           "column": 39
+        }
+      ]
+    },
+    "3aff2c9359a6eeaa": {
+      "source": "已授权设备",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 109,
+          "column": 25
         }
       ]
     },
@@ -1647,12 +1717,12 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 248,
+          "line": 250,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 254,
+          "line": 256,
           "column": 26
         }
       ]
@@ -1734,7 +1804,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 156,
+          "line": 157,
           "column": 66
         }
       ]
@@ -1746,8 +1816,20 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 274,
+          "line": 276,
           "column": 52
+        }
+      ]
+    },
+    "419b2255152b90c4": {
+      "source": "手机远控",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 95,
+          "column": 29
         }
       ]
     },
@@ -1846,6 +1928,18 @@
           "file": "features/home/metrics/HomeMetrics.tsx",
           "line": 94,
           "column": 5
+        }
+      ]
+    },
+    "474e2f2e9522b9c1": {
+      "source": "手机远控设置已保存",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 72,
+          "column": 15
         }
       ]
     },
@@ -2208,7 +2302,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 177,
+          "line": 178,
           "column": 26
         }
       ]
@@ -2331,7 +2425,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 234,
+          "line": 236,
           "column": 78
         }
       ]
@@ -2345,6 +2439,18 @@
           "file": "features/models/CursorModelEditor.tsx",
           "line": 161,
           "column": 69
+        }
+      ]
+    },
+    "58c3e71d3b337206": {
+      "source": "尚未发现项目",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 106,
+          "column": 463
         }
       ]
     },
@@ -2377,7 +2483,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 238,
+          "line": 240,
           "column": 21
         }
       ]
@@ -2461,6 +2567,30 @@
         }
       ]
     },
+    "5d9a8f481f0aa28a": {
+      "source": "手机只能查看和控制手动勾选的工作区。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 106,
+          "column": 52
+        }
+      ]
+    },
+    "5e04312da085cb84": {
+      "source": "仅通过 Tailscale Serve 的 HTTPS 私网地址访问，不要直接暴露完整桌面端口。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 98,
+          "column": 52
+        }
+      ]
+    },
     "5f600b307b4eb0fb": {
       "source": "API 密钥",
       "kind": "text",
@@ -2520,6 +2650,18 @@
           "file": "features/plugins/PluginResourcePanels.tsx",
           "line": 272,
           "column": 102
+        }
+      ]
+    },
+    "601db91e86869998": {
+      "source": "生成配对链接",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 191
         }
       ]
     },
@@ -2601,6 +2743,18 @@
           "file": "features/home/metrics/HomeMetrics.tsx",
           "line": 103,
           "column": 5
+        }
+      ]
+    },
+    "62cdc8713bcf7667": {
+      "source": "未运行",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 101,
+          "column": 143
         }
       ]
     },
@@ -2803,7 +2957,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 100,
+          "line": 101,
           "column": 55
         }
       ]
@@ -2917,6 +3071,18 @@
         }
       ]
     },
+    "6f217a74075687e3": {
+      "source": "Tailscale HTTPS 来源",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 104,
+          "column": 27
+        }
+      ]
+    },
     "7005693f4f050bce": {
       "source": "缓存读写 {cost}",
       "kind": "template",
@@ -2967,8 +3133,20 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 167,
+          "line": 168,
           "column": 16
+        }
+      ]
+    },
+    "75e2e40d64399ec5": {
+      "source": "请自行在终端执行；应用不会自动修改 Tailscale 规则。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 107,
+          "column": 120
         }
       ]
     },
@@ -2991,7 +3169,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 266,
+          "line": 268,
           "column": 26
         }
       ]
@@ -3039,7 +3217,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 299,
+          "line": 301,
           "column": 23
         }
       ]
@@ -3106,7 +3284,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 143,
+          "line": 144,
           "column": 83
         }
       ]
@@ -3310,6 +3488,18 @@
         }
       ]
     },
+    "85a8318d382d2ba5": {
+      "source": "授权项目",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 106,
+          "column": 25
+        }
+      ]
+    },
     "864597982c308d72": {
       "source": "已开启静默启动",
       "kind": "text",
@@ -3450,7 +3640,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 237,
+          "line": 239,
           "column": 22
         }
       ]
@@ -3577,8 +3767,32 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 159,
+          "line": 160,
           "column": 7
+        }
+      ]
+    },
+    "926a50b98ece2667": {
+      "source": "撤销",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 109,
+          "column": 267
+        }
+      ]
+    },
+    "9273b8cc8f40fabd": {
+      "source": "正在运行",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 101,
+          "column": 131
         }
       ]
     },
@@ -3781,6 +3995,18 @@
         }
       ]
     },
+    "9c02cd4ae692e6a7": {
+      "source": "链接中的票据五分钟有效，且必须在电脑端确认。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 333
+        }
+      ]
+    },
     "9c41b3a9e12ac994": {
       "source": "思考强度",
       "kind": "text",
@@ -3913,7 +4139,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 245,
+          "line": 247,
           "column": 26
         }
       ]
@@ -3949,7 +4175,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 63,
+          "line": 64,
           "column": 34
         }
       ]
@@ -4062,8 +4288,13 @@
           "column": 103
         },
         {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 95,
+          "column": 167
+        },
+        {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 180,
+          "line": 181,
           "column": 133
         },
         {
@@ -4075,6 +4306,18 @@
           "file": "shared/ui/Modal.tsx",
           "line": 42,
           "column": 223
+        }
+      ]
+    },
+    "a319c26fa10c5639": {
+      "source": "默认 43127，仅绑定本机回环地址。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 103,
+          "column": 44
         }
       ]
     },
@@ -4587,7 +4830,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 156,
+          "line": 157,
           "column": 45
         }
       ]
@@ -4613,7 +4856,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 282,
+          "line": 284,
           "column": 22
         }
       ]
@@ -4771,7 +5014,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 283,
+          "line": 285,
           "column": 31
         }
       ]
@@ -4783,7 +5026,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 274,
+          "line": 276,
           "column": 40
         }
       ]
@@ -5069,12 +5312,12 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 165,
+          "line": 166,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 171,
+          "line": 172,
           "column": 20
         }
       ]
@@ -5086,7 +5329,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 202,
+          "line": 203,
           "column": 21
         }
       ]
@@ -5122,7 +5365,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 158,
+          "line": 159,
           "column": 7
         }
       ]
@@ -5199,6 +5442,18 @@
           "file": "shared/ui/FormControls.tsx",
           "line": 15,
           "column": 95
+        }
+      ]
+    },
+    "d56a511f498f7e73": {
+      "source": "已确认",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 583
         }
       ]
     },
@@ -5333,6 +5588,18 @@
           "file": "features/settings/CommitSettingsCard.tsx",
           "line": 149,
           "column": 15
+        }
+      ]
+    },
+    "da1df9b3c824bf91": {
+      "source": "填写 Tailscale Serve 提供的 HTTPS 地址，用于生成同源配对链接。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 104,
+          "column": 58
         }
       ]
     },
@@ -5478,7 +5745,7 @@
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 318,
+          "line": 320,
           "column": 30
         },
         {
@@ -5694,6 +5961,18 @@
         }
       ]
     },
+    "e46b0272bd641090": {
+      "source": "运行状态",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 101,
+          "column": 47
+        }
+      ]
+    },
     "e4760c6a1df24f17": {
       "source": "完整请求 URL",
       "kind": "text",
@@ -5742,7 +6021,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 76,
+          "line": 77,
           "column": 17
         }
       ]
@@ -5836,8 +6115,20 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 162,
+          "line": 163,
           "column": 26
+        }
+      ]
+    },
+    "eaf541af55cd68fd": {
+      "source": "监听端口",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 103,
+          "column": 27
         }
       ]
     },
@@ -5951,7 +6242,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 221,
+          "line": 222,
           "column": 16
         }
       ]
@@ -6112,7 +6403,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 249,
+          "line": 251,
           "column": 21
         }
       ]
@@ -6198,7 +6489,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 189,
+          "line": 190,
           "column": 21
         }
       ]
@@ -6317,6 +6608,18 @@
         }
       ]
     },
+    "fcda50a2f6fb5174": {
+      "source": "配对二维码",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 108,
+          "column": 288
+        }
+      ]
+    },
     "fd415f8e0097c832": {
       "source": "缓存读写已计入提示词侧统计。",
       "kind": "text",
@@ -6396,7 +6699,7 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 309,
+          "line": 311,
           "column": 38
         }
       ]
@@ -6427,8 +6730,13 @@
           "column": 91
         },
         {
+          "file": "features/settings/RemoteControlSettingsCard.tsx",
+          "line": 95,
+          "column": 155
+        },
+        {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 180,
+          "line": 181,
           "column": 121
         },
         {
@@ -6457,17 +6765,17 @@
       "refs": [
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 71,
+          "line": 72,
           "column": 46
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 201,
+          "line": 202,
           "column": 22
         },
         {
           "file": "features/settings/SettingsPage.tsx",
-          "line": 216,
+          "line": 217,
           "column": 58
         }
       ]

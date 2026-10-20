@@ -232,6 +232,9 @@ pub fn run() -> ExitCode {
                 .merge_router(desktop_api_router(app.handle().clone()));
             #[cfg(not(dev))]
             let server = server.merge_router(frontend::router(app.handle().clone()));
+            server
+                .remote()
+                .set_assets(crate::mobile_frontend::router(app.handle().clone()));
             let listener = tauri::async_runtime::block_on(server.bind())?;
             let address = listener.local_addr()?;
             tauri::async_runtime::block_on(server.harness().cleanup_stale_settings())?;

@@ -115,10 +115,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
+          cache-dependency-path: |
+            apps/desktop/package-lock.json
+            apps/mobile/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install desktop frontend dependencies
         working-directory: apps/desktop
+        run: npm ci
+
+      - name: Install mobile frontend dependencies
+        working-directory: apps/mobile
         run: npm ci
 
       - uses: tauri-apps/tauri-action@v1

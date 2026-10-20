@@ -10,6 +10,7 @@ mod messages;
 mod migrations;
 mod models;
 mod overview;
+mod remote;
 mod runs;
 mod settings;
 mod sqlite;

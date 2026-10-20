@@ -35,7 +35,10 @@ use crate::{
     Error, Result,
 };
 
-use super::{CompiledMessages, ConversationRegistry, MessageDelivery, RunFinish, TransportFinish};
+use super::{
+    CompiledMessages, ConversationRegistry, MessageDelivery, RemoteResult, RunFinish,
+    TransportFinish,
+};
 use crate::cursor::transport::TransportHandle;
 
 pub struct ConversationOutput {
@@ -241,6 +244,27 @@ impl ConversationOutput {
                             &completions,
                             &mut interrupted_rounds,
                             &mut interrupted_tool_calls,
+                        )
+                        .await?;
+                    }
+                    RuntimeAction::RemoteAppend {
+                        command_id,
+                        text,
+                        accepted_commands,
+                        result,
+                    } => {
+                        self.forward_remote_append(
+                            command_id,
+                            text,
+                            accepted_commands,
+                            result,
+                            InjectionState {
+                                active_round: active_round.as_ref(),
+                                active_tool_calls: &active_tool_calls,
+                                completions: &completions,
+                                interrupted_rounds: &mut interrupted_rounds,
+                                interrupted_tool_calls: &mut interrupted_tool_calls,
+                            },
                         )
                         .await?;
                     }
@@ -829,6 +853,84 @@ impl ConversationOutput {
             self.handle.emit(&message)?;
         }
         Ok(dispatched.completion)
+    }
+
+    async fn forward_remote_append(
+        &mut self,
+        command_id: String,
+        text: String,
+        accepted_commands: std::sync::Arc<parking_lot::Mutex<HashSet<String>>>,
+        result: oneshot::Sender<RemoteResult>,
+        state: InjectionState<'_>,
+    ) -> Result<()> {
+        let InjectionState {
+            active_round,
+            active_tool_calls,
+            completions,
+            interrupted_rounds,
+            interrupted_tool_calls,
+        } = state;
+        if command_id.trim().is_empty() || text.trim().is_empty() {
+            let _ = result.send(RemoteResult::InvalidInput);
+            return Ok(());
+        }
+        let identity = format!("remote:{command_id}");
+        let user_message = pb::UserMessage {
+            text,
+            message_id: identity.clone(),
+            mode: self.context.mode,
+            ..Default::default()
+        };
+        let action = pb::UserMessageAction {
+            user_message: Some(user_message.clone()),
+            ..Default::default()
+        };
+        let message = compile_user_message_action(
+            &action,
+            self.context.mode,
+            &self.compiler,
+            &self.blob_sync,
+        )
+        .await?;
+        self.injection_ids.insert(identity.clone());
+        self.pending_injections.insert(
+            format!("user-message:{identity}"),
+            PendingInjection {
+                user_message: Some(user_message),
+                delivery_batch_id: identity.clone(),
+            },
+        );
+        self.handle
+            .emit(&events::context_injection_queued(identity.clone()))?;
+        interrupted_tool_calls.extend(
+            active_tool_calls
+                .iter()
+                .filter(|call_id| !completions.contains_key(*call_id))
+                .cloned(),
+        );
+        if let Some(round_id) = active_round {
+            interrupted_rounds.insert(round_id.clone());
+        }
+        self.interrupt_execs().await;
+        let event_id = message
+            .runtime_event_id
+            .clone()
+            .ok_or_else(|| Error::Protocol("runtime message has no event identity".into()))?;
+        let run = self.run.clone();
+        tokio::spawn(async move {
+            let remote = match run.break_messages(event_id, vec![message]).await {
+                CommandResult::Applied => RemoteResult::Applied,
+                CommandResult::Duplicate => RemoteResult::Duplicate,
+                CommandResult::RunClosing => RemoteResult::RunClosing,
+                CommandResult::RunEnded => RemoteResult::RunEnded,
+                CommandResult::StaleTarget => RemoteResult::StaleTarget,
+            };
+            if !matches!(remote, RemoteResult::Applied | RemoteResult::Duplicate) {
+                accepted_commands.lock().remove(&command_id);
+            }
+            let _ = result.send(remote);
+        });
+        Ok(())
     }
 
     async fn forward_user_message(

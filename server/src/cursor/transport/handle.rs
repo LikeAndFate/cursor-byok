@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     cursor::{
-        conversation::TransportCommand,
+        conversation::{RemoteCommand, RemoteResult, RemoteState, RemoteTarget, TransportCommand},
         protocol::{connect, proto::agent::v1 as pb},
         services::observability::CursorTraceRecorder,
     },
@@ -110,8 +110,46 @@ impl TransportHandle {
             .map_err(|_| Error::RunNotFound(self.request_id.clone()))
     }
 
+    pub async fn remote_state(&self) -> Option<RemoteState> {
+        let (result, response) = tokio::sync::oneshot::channel();
+        self.commands
+            .send(TransportCommand::RemoteState { result })
+            .await
+            .ok()?;
+        response.await.ok().flatten()
+    }
+
+    pub async fn remote_command(
+        &self,
+        target: RemoteTarget,
+        command: RemoteCommand,
+    ) -> RemoteResult {
+        let (result, response) = tokio::sync::oneshot::channel();
+        if self
+            .commands
+            .send(TransportCommand::RemoteControl {
+                target,
+                command,
+                result,
+            })
+            .await
+            .is_err()
+        {
+            return RemoteResult::RunEnded;
+        }
+        response.await.unwrap_or(RemoteResult::RunEnded)
+    }
+
     pub async fn disconnect(&self) {
         let _ = self.commands.send(TransportCommand::Disconnect).await;
+    }
+
+    pub(crate) fn remote_new_turn(&self) {
+        self.output.remote_new_turn();
+    }
+
+    pub(crate) fn remote_display(&self) -> crate::remote::DisplayState {
+        self.output.remote_display()
     }
 
     pub fn subscribe(&self) -> tokio::sync::mpsc::UnboundedReceiver<Bytes> {

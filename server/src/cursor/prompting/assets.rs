@@ -94,6 +94,10 @@ impl PromptAssets {
     }
 
     fn read(mut asset: impl FnMut(&str) -> Result<Option<String>>) -> Result<Self> {
+        // Prompts are part of the cached provider prefix, so the checkout line ending must not
+        // change what the model sees. Normalize CRLF to LF on every platform.
+        let mut asset =
+            |path: &str| asset(path).map(|text| text.map(|text| text.replace("\r\n", "\n")));
         let catalog = Catalog::parse(
             &asset("tools.json")?
                 .ok_or_else(|| Error::Config("missing Cursor tools.json".into()))?,

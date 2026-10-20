@@ -23,7 +23,8 @@ use crate::{
 
 use super::{
     CompiledMessages, ConversationDependencies, ConversationOutput, ConversationOutputDependencies,
-    ConversationRegistry, MessageDelivery, RunFinish, TransportCommand, TransportFinish,
+    ConversationRegistry, MessageDelivery, RemoteCommand, RemoteQuestion, RemoteResult,
+    RemoteState, RemoteTarget, RunFinish, TransportCommand, TransportFinish,
 };
 
 pub struct ConversationRuntime;
@@ -39,6 +40,7 @@ struct RunGeneration {
     run: Arc<parking_lot::Mutex<Option<RunHandle>>>,
     results: ToolResultSender,
     runtime_actions: mpsc::UnboundedSender<compile::RuntimeAction>,
+    remote_commands: Arc<parking_lot::Mutex<std::collections::HashSet<String>>>,
     tool_runtime: CursorToolRuntime,
     tools: ToolDispatcher,
 }
@@ -191,6 +193,18 @@ impl ConversationRuntime {
                                 draining = true;
                             }
                         }
+                    }
+                    TransportCommand::RemoteState { result } => {
+                        let state = remote_state(current.as_ref()).await;
+                        let _ = result.send(state);
+                    }
+                    TransportCommand::RemoteControl {
+                        target,
+                        command,
+                        result,
+                    } => {
+                        handle_remote_control(&handle, current.as_ref(), target, command, result)
+                            .await;
                     }
                     TransportCommand::Append { seqno, message } => {
                         for (_seqno, message) in inbox.push(seqno, *message) {
@@ -534,6 +548,7 @@ async fn start_generation(
     } else {
         None
     };
+    handle.remote_new_turn();
     let (results, result_receiver) = tool_result_channel();
     let (runtime_actions, runtime_action_receiver) =
         mpsc::unbounded_channel::<compile::RuntimeAction>();
@@ -552,6 +567,7 @@ async fn start_generation(
         run: Arc::new(parking_lot::Mutex::new(None)),
         results,
         runtime_actions,
+        remote_commands: Arc::new(parking_lot::Mutex::new(std::collections::HashSet::new())),
         tool_runtime,
         tools,
     };
@@ -824,6 +840,128 @@ fn spawn_run_request(
                 .await;
         }
     });
+}
+
+async fn remote_state(generation: Option<&RunGeneration>) -> Option<RemoteState> {
+    let generation = generation?;
+    let run = generation.run.lock().clone()?;
+    if run.phase() != RunPhase::Running {
+        return None;
+    }
+    let questions = generation
+        .tools
+        .remote_questions()
+        .await
+        .into_iter()
+        .map(|(interaction_id, tool_call_id, args)| RemoteQuestion {
+            interaction_id,
+            tool_call_id,
+            args,
+        })
+        .collect();
+    Some(RemoteState {
+        target: RemoteTarget {
+            run_id: run.run_id().clone(),
+            generation: generation.id,
+        },
+        questions,
+    })
+}
+
+async fn handle_remote_control(
+    handle: &TransportHandle,
+    generation: Option<&RunGeneration>,
+    target: RemoteTarget,
+    command: RemoteCommand,
+    result: tokio::sync::oneshot::Sender<RemoteResult>,
+) {
+    let Some(generation) = generation else {
+        let _ = result.send(RemoteResult::RunEnded);
+        return;
+    };
+    let Some(run) = generation.run.lock().clone() else {
+        let _ = result.send(RemoteResult::RunEnded);
+        return;
+    };
+    if generation.id != target.generation || run.run_id() != &target.run_id {
+        let _ = result.send(RemoteResult::StaleTarget);
+        return;
+    }
+    match run.phase() {
+        RunPhase::Finalizing => {
+            let _ = result.send(RemoteResult::RunClosing);
+            return;
+        }
+        RunPhase::Ended => {
+            let _ = result.send(RemoteResult::RunEnded);
+            return;
+        }
+        RunPhase::Running => {}
+    }
+    match command {
+        RemoteCommand::AppendText { command_id, text } => {
+            if command_id.trim().is_empty() || text.trim().is_empty() {
+                let _ = result.send(RemoteResult::InvalidInput);
+                return;
+            }
+            if generation.remote_commands.lock().contains(&command_id) {
+                let _ = result.send(RemoteResult::Duplicate);
+                return;
+            }
+            generation.remote_commands.lock().insert(command_id.clone());
+            let fallback = generation.remote_commands.clone();
+            if generation
+                .runtime_actions
+                .send(compile::RuntimeAction::RemoteAppend {
+                    command_id: command_id.clone(),
+                    text,
+                    accepted_commands: generation.remote_commands.clone(),
+                    result,
+                })
+                .is_err()
+            {
+                fallback.lock().remove(&command_id);
+            }
+        }
+        RemoteCommand::Stop => {
+            run.cancel();
+            for id in generation.tool_runtime.drain_running().await {
+                let _ = handle.emit(&codec::abort(id));
+            }
+            let _ = result.send(RemoteResult::Applied);
+        }
+        RemoteCommand::AnswerQuestion {
+            interaction_id,
+            tool_call_id,
+            answers,
+        } => {
+            if generation
+                .tool_runtime
+                .completed_call(interaction_id)
+                .await
+                .is_some()
+            {
+                let _ = result.send(RemoteResult::AlreadyResolved);
+                return;
+            }
+            match generation
+                .tools
+                .remote_answer_question(interaction_id, &tool_call_id, &answers)
+                .await
+            {
+                Err(()) => {
+                    let _ = result.send(RemoteResult::InvalidInput);
+                }
+                Ok(None) => {
+                    let _ = result.send(RemoteResult::AlreadyResolved);
+                }
+                Ok(Some(completion)) => {
+                    generation.results.send(*completion);
+                    let _ = result.send(RemoteResult::Applied);
+                }
+            }
+        }
+    }
 }
 
 fn runtime_action_name(action: &pb::conversation_action::Action) -> &'static str {

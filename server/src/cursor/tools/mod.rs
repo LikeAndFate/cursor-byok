@@ -213,6 +213,52 @@ impl ToolDispatcher {
         })
     }
 
+    pub(crate) async fn remote_questions(&self) -> Vec<(u32, String, pb::AskQuestionArgs)> {
+        self.runtime.pending_questions().await
+    }
+
+    pub(crate) async fn remote_answer_question(
+        &self,
+        interaction_id: u32,
+        tool_call_id: &str,
+        answers: &[crate::cursor::conversation::RemoteAnswer],
+    ) -> std::result::Result<Option<Box<ToolCompletion>>, ()> {
+        let Some(pending) = self
+            .runtime
+            .take_valid_question(interaction_id, tool_call_id, answers)
+            .await?
+        else {
+            return Ok(None);
+        };
+        let response = pb::InteractionResponse {
+            id: interaction_id,
+            result: Some(
+                pb::interaction_response::Result::AskQuestionInteractionResponse(
+                    pb::AskQuestionInteractionResponse {
+                        result: Some(pb::AskQuestionResult {
+                            result: Some(pb::ask_question_result::Result::Success(
+                                pb::AskQuestionSuccess {
+                                    answers: answers
+                                        .iter()
+                                        .map(|answer| pb::ask_question_success::Answer {
+                                            question_id: answer.question_id.clone(),
+                                            selected_option_ids: answer.selected_option_ids.clone(),
+                                            freeform_text: answer.freeform_text.clone(),
+                                        })
+                                        .collect(),
+                                },
+                            )),
+                        }),
+                    },
+                ),
+            ),
+        };
+        tool_call_result::from_interaction(pending, &response)
+            .map(Box::new)
+            .map(Some)
+            .map_err(|_| ())
+    }
+
     pub async fn interaction_response(
         &self,
         response: &pb::InteractionResponse,

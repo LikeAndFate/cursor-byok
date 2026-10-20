@@ -129,6 +129,55 @@ impl CursorToolRuntime {
         }
     }
 
+    pub async fn pending_questions(&self) -> Vec<(u32, String, pb::AskQuestionArgs)> {
+        let interactions = self.interactions.lock().await;
+        let mut questions = interactions
+            .iter()
+            .filter_map(|(id, pending)| {
+                let message = super::codec::tool_query(*id, &pending.call).ok()?;
+                let pb::agent_server_message::Message::InteractionQuery(query) = message.message?
+                else {
+                    return None;
+                };
+                let pb::interaction_query::Query::AskQuestionInteractionQuery(question) =
+                    query.query?
+                else {
+                    return None;
+                };
+                Some((*id, question.tool_call_id, question.args?))
+            })
+            .collect::<Vec<_>>();
+        questions.sort_by_key(|(id, _, _)| *id);
+        questions
+    }
+
+    pub(crate) async fn take_valid_question(
+        &self,
+        id: u32,
+        tool_call_id: &str,
+        answers: &[crate::cursor::conversation::RemoteAnswer],
+    ) -> std::result::Result<Option<PendingInteraction>, ()> {
+        let mut interactions = self.interactions.lock().await;
+        let pending = interactions
+            .get(&id)
+            .filter(|pending| {
+                pending.call.name.eq_ignore_ascii_case("AskQuestion")
+                    && pending.call.call_id == tool_call_id
+            })
+            .ok_or(())?;
+        if !valid_answers(&pending.call, answers) {
+            return Err(());
+        }
+        let pending = interactions
+            .remove(&id)
+            .expect("validated interaction exists");
+        self.completed
+            .lock()
+            .await
+            .insert(id, pending.call.call_id.clone());
+        Ok(Some(pending))
+    }
+
     pub async fn reserve_exec(&self, call: &ToolCall, context: &ExecContext) -> Result<u32> {
         self.reserve_exec_stage(call, context, ExecStage::Direct, None)
             .await
@@ -357,6 +406,62 @@ impl CursorToolRuntime {
             .checked_add(1)
             .ok_or_else(|| Error::Protocol("Cursor message id space exhausted".into()))
     }
+}
+
+fn valid_answers(call: &ToolCall, answers: &[crate::cursor::conversation::RemoteAnswer]) -> bool {
+    let Some(questions) = call
+        .arguments
+        .get("questions")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return false;
+    };
+    if answers.len() != questions.len() {
+        return false;
+    }
+    questions.iter().all(|question| {
+        let Some(question_id) = question.get("id").and_then(serde_json::Value::as_str) else {
+            return false;
+        };
+        if answers
+            .iter()
+            .filter(|answer| answer.question_id == question_id)
+            .count()
+            != 1
+        {
+            return false;
+        }
+        let Some(answer) = answers
+            .iter()
+            .find(|answer| answer.question_id == question_id)
+        else {
+            return false;
+        };
+        if !answer.freeform_text.trim().is_empty() {
+            return answer.selected_option_ids.is_empty();
+        }
+        if answer.selected_option_ids.is_empty() {
+            return false;
+        }
+        let allow_multiple = question
+            .get("allow_multiple")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+        if !allow_multiple && answer.selected_option_ids.len() != 1 {
+            return false;
+        }
+        let options = question
+            .get("options")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|option| option.get("id").and_then(serde_json::Value::as_str))
+            .collect::<HashSet<_>>();
+        answer
+            .selected_option_ids
+            .iter()
+            .all(|id| options.contains(id.as_str()))
+    })
 }
 
 pub(crate) fn now_ms() -> u64 {

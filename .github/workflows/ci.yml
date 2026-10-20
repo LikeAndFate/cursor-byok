@@ -54,13 +54,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
+          cache-dependency-path: |
+            apps/desktop/package-lock.json
+            apps/mobile/package-lock.json
 
-      - name: Install dependencies
+      - name: Install desktop dependencies
         working-directory: apps/desktop
         run: npm ci
 
-      - name: Check types and production build
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Check mobile types, tests and production build
+        working-directory: apps/mobile
+        run: npm run check
+
+      - name: Check desktop types and bundled production build
         working-directory: apps/desktop
         run: npm run check
 

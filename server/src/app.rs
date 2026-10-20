@@ -15,6 +15,7 @@ use crate::{
     local_app::CursorHarness,
     plugin::{PluginRegistry, PluginRuntime},
     provider::ProviderRouter,
+    remote::RemoteService,
     search::WebCache,
     store::Store,
     Result,
@@ -25,6 +26,7 @@ pub struct App {
     router: axum::Router,
     registry: TransportRegistry,
     harness: CursorHarness,
+    remote: RemoteService,
     store: Store,
 }
 
@@ -80,6 +82,7 @@ impl App {
             config.app_version.clone(),
         )?;
         let harness = control.cursor_harness().clone();
+        let remote = RemoteService::new(store.clone(), registry.clone()).await?;
         let mut router = api::router(registry.clone(), clients)?.merge(byok);
         router = match &config.console {
             Some(ConsoleSource::Directory(directory)) => {
@@ -90,13 +93,20 @@ impl App {
             }
             None => router.merge(control::api_router(control.clone())),
         };
+        // The local management boundary only; the phone listener is a separate loopback socket.
+        router = router.merge(remote.management_router());
         Ok(Self {
             router,
             registry,
             harness,
+            remote,
             store,
             config,
         })
+    }
+
+    pub fn remote(&self) -> RemoteService {
+        self.remote.clone()
     }
 
     pub fn merge_router(mut self, router: axum::Router) -> Self {
@@ -143,9 +153,11 @@ impl App {
         let address = listener.local_addr()?;
         self.registry.web_cache().set_service_addr(address);
         self.harness.set_backend_addr(address);
+        self.remote.start().await;
         tracing::info!(%address, "cursor server listening");
         let registry = self.registry;
         let harness = self.harness;
+        let remote = self.remote;
         let graceful = shutdown.clone();
         let server = axum::serve(listener, self.router)
             .with_graceful_shutdown(async move {
@@ -156,12 +168,14 @@ impl App {
 
         tokio::select! {
             result = &mut server => {
+                remote.shutdown().await;
                 if let Err(error) = harness.disable().await {
                     tracing::warn!(%error, "failed to disable Cursor harness after server stop");
                 }
                 result?
             },
             () = shutdown.cancelled() => {
+                remote.shutdown().await;
                 if let Err(error) = harness.disable().await {
                     tracing::warn!(%error, "failed to disable Cursor harness during shutdown");
                 }

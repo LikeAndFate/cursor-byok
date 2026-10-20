@@ -7,6 +7,7 @@ import { CommitSettingsCard } from "./CommitSettingsCard";
 import { ExternalApiSettingsCard } from "./ExternalApiSettingsCard";
 import { PricingSettingsCard } from "./PricingSettingsCard";
 import { ProxySettingsCard } from "./ProxySettingsCard";
+import { RemoteControlSettingsCard } from "./RemoteControlSettingsCard";
 import { TabSettingsCard } from "./TabSettingsCard";
 import { Button } from "../../shared/ui/Button";
 import { Checkbox } from "../../shared/ui/Checkbox";
@@ -226,6 +227,7 @@ export function SettingsPage() {
         </div>
       </TitledCard>
       <ExternalApiSettingsCard servicePort={ports.service_port} />
+      <RemoteControlSettingsCard />
       <ProxySettingsCard settings={outboundProxy} draft={proxyDraft} editing={editingProxy} saving={savingProxy} onDraftChange={setProxyDraft} onEdit={editProxy} onCancel={cancelProxyEdit} onSave={() => void saveProxy()} />
       <TabSettingsCard settings={tabSettings} draft={tabDraft} editing={editingTab} saving={savingTab} onDraftChange={setTabDraft} onEdit={editTab} onCancel={cancelTabEdit} onSave={() => void saveTab()} />
       <CommitSettingsCard />
