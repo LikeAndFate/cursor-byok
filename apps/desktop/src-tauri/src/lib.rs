@@ -1,5 +1,4 @@
 mod desktop;
-#[cfg(not(dev))]
 mod frontend;
 mod mobile_frontend;
 mod resource_limits;

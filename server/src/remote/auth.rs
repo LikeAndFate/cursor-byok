@@ -229,9 +229,10 @@ impl RemoteService {
         if (write || origin.is_some()) && origin != Some(settings.public_origin.as_str()) {
             return Err(StatusCode::FORBIDDEN);
         }
-        if headers
-            .get("sec-fetch-site")
-            .is_some_and(|h| h != "same-origin" && h != "none")
+        if write
+            && headers
+                .get("sec-fetch-site")
+                .is_some_and(|h| h != "same-origin" && h != "none")
         {
             return Err(StatusCode::FORBIDDEN);
         }

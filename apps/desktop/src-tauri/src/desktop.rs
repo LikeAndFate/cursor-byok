@@ -20,14 +20,10 @@ use tauri::{
 use tauri_plugin_opener::OpenerExt;
 use tokio_util::sync::CancellationToken;
 
-#[cfg(dev)]
-use cursor_server::config::ConsoleSource;
-use cursor_server::{App, Config, Result};
-
-#[cfg(not(dev))]
 use crate::frontend;
 use crate::startup::{self, StartupDiagnostics};
 use crate::tray;
+use cursor_server::{config::ConsoleSource, App, Config, Result};
 
 pub(crate) const MAIN_WINDOW_LABEL: &str = "main";
 const AUTOSTART_ARG: &str = "--autostart";
@@ -105,6 +101,41 @@ async fn open_external_url_handler(
     open_external_url(&app, &request.url)
         .map(|_| StatusCode::NO_CONTENT)
         .map_err(|error| (StatusCode::BAD_REQUEST, error))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frontend_mode_defaults_to_embedded_and_accepts_only_proxy() {
+        assert_eq!(frontend_mode(Some("proxy")), FrontendMode::Proxy);
+        assert_eq!(frontend_mode(Some("embedded")), FrontendMode::Embedded);
+        assert_eq!(frontend_mode(Some("unexpected")), FrontendMode::Embedded);
+        assert_eq!(frontend_mode(None), FrontendMode::Embedded);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FrontendMode {
+    Embedded,
+    Proxy,
+}
+
+fn frontend_mode(value: Option<&str>) -> FrontendMode {
+    match value {
+        Some("proxy") => FrontendMode::Proxy,
+        _ => FrontendMode::Embedded,
+    }
+}
+
+fn frontend_proxy_enabled() -> bool {
+    cfg!(dev)
+        || frontend_mode(
+            std::env::var_os("CURSOR_DESKTOP_FRONTEND")
+                .as_deref()
+                .and_then(|value| value.to_str()),
+        ) == FrontendMode::Proxy
 }
 
 fn desktop_api_router(app: AppHandle) -> Router {
@@ -192,17 +223,19 @@ pub fn run() -> ExitCode {
 
     let started_by_autostart = std::env::args_os().any(|arg| arg == AUTOSTART_ARG);
 
-    let app = tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            open_terminal_with_command,
-            crate::update::check_portable_update,
-            crate::update::install_portable_update,
-        ])
-        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            if !args.iter().any(|arg| arg == AUTOSTART_ARG) {
-                let _ = open_main_window(app);
-            }
-        }))
+    let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
+        open_terminal_with_command,
+        crate::update::check_portable_update,
+        crate::update::install_portable_update,
+    ]);
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _| {
+        if !args.iter().any(|arg| arg == AUTOSTART_ARG) {
+            let _ = open_main_window(app);
+        }
+    }));
+
+    let app = builder
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
@@ -212,26 +245,24 @@ pub fn run() -> ExitCode {
                 tauri_plugin_autostart::MacosLauncher::LaunchAgent,
                 Some(vec![AUTOSTART_ARG]),
             ))?;
-            let config = {
-                let mut config = Config::desktop()?;
-                // 插件的 minAppVersion 按桌面应用版本判定,而不是内嵌 server 库的版本。
-                config.app_version = env!("CARGO_PKG_VERSION").into();
-                config
-            };
-            #[cfg(dev)]
-            let config = {
-                let mut config = config;
+            let frontend_proxy = frontend_proxy_enabled();
+            let mut config = Config::desktop()?;
+            // 插件的 minAppVersion 按桌面应用版本判定,而不是内嵌 server 库的版本。
+            config.app_version = env!("CARGO_PKG_VERSION").into();
+            if frontend_proxy {
                 config.console = Some(ConsoleSource::Proxy(
                     "http://127.0.0.1:1420"
                         .parse()
                         .expect("Vite development URL"),
                 ));
-                config
-            };
+            }
             let server = tauri::async_runtime::block_on(App::new(config))?
                 .merge_router(desktop_api_router(app.handle().clone()));
-            #[cfg(not(dev))]
-            let server = server.merge_router(frontend::router(app.handle().clone()));
+            let server = if frontend_proxy {
+                server
+            } else {
+                server.merge_router(frontend::router(app.handle().clone()))
+            };
             server
                 .remote()
                 .set_assets(crate::mobile_frontend::router(app.handle().clone()));

@@ -6,17 +6,26 @@ use std::os::unix::fs::PermissionsExt;
 
 use crate::{Error, Result};
 
-const DATA_DIR_NAME: &str = ".cursor-byok-v3";
+const PRODUCTION_DATA_DIR_NAME: &str = ".cursor-byok-v3";
+const DEVELOPMENT_DATA_DIR_NAME: &str = ".cursor-byok-v3-dev";
 const DATABASE_FILE_NAME: &str = "cursor-byok.db";
 const V0049_DATA_DIR_NAME: &str = ".cursor-local-assistant-v2";
 const V0049_CONFIG_FILE_NAME: &str = "config.yaml";
 const DEFAULT_PROVIDER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60 * 60);
 const DEFAULT_PROVIDER_STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
+fn data_dir_name(debug_assertions: bool) -> &'static str {
+    if debug_assertions {
+        DEVELOPMENT_DATA_DIR_NAME
+    } else {
+        PRODUCTION_DATA_DIR_NAME
+    }
+}
+
 pub fn managed_data_dir() -> Result<PathBuf> {
     let home_dir = dirs::home_dir()
         .ok_or_else(|| Error::Config("cannot resolve user home directory".into()))?;
-    let data_dir = home_dir.join(DATA_DIR_NAME);
+    let data_dir = home_dir.join(data_dir_name(cfg!(debug_assertions)));
     fs::create_dir_all(&data_dir)?;
     #[cfg(unix)]
     fs::set_permissions(&data_dir, fs::Permissions::from_mode(0o700))?;
@@ -155,6 +164,12 @@ fn database_url_for_dir(data_dir: &std::path::Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn debug_and_release_builds_use_different_data_directories() {
+        assert_eq!(data_dir_name(true), DEVELOPMENT_DATA_DIR_NAME);
+        assert_eq!(data_dir_name(false), PRODUCTION_DATA_DIR_NAME);
+    }
 
     #[test]
     fn provider_timeout_defaults_match_runtime_boundaries() {

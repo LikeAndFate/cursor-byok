@@ -4,7 +4,7 @@
   "version": "1.0.2-beta.1",
   "identifier": "dev.cursorbytk.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "cross-env CURSOR_DESKTOP_FRONTEND=proxy npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build:bundle",
     "frontendDist": "../dist"

@@ -190,6 +190,28 @@ async fn pairing_requires_computer_confirmation_and_revocation_is_immediate() {
 }
 
 #[tokio::test]
+async fn cross_site_write_requests_are_rejected_even_with_matching_origin() {
+    let (_directory, service) = service().await;
+    service
+        .configure(RemoteSettings {
+            public_origin: "https://dev.example.ts.net".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let mut input = request(
+        "/api/pairings/redeem",
+        "POST",
+        json!({"ticket":"invalid", "device_name":"phone"}),
+    );
+    input
+        .headers_mut()
+        .insert("sec-fetch-site", "cross-site".parse().unwrap());
+    let response = service.router().oneshot(input).await.unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
 async fn cross_origin_pairing_is_rejected() {
     let (_directory, service) = service().await;
     service

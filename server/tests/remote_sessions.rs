@@ -154,6 +154,7 @@ async fn asset_cache_policy_survives_the_remote_guard() {
             Request::builder()
                 .uri("/mobile/assets/app.js")
                 .header("host", "dev.example.ts.net")
+                .header("sec-fetch-site", "cross-site")
                 .body(Body::empty())
                 .unwrap(),
         )

@@ -17,7 +17,7 @@
     "dev:web": "concurrently --kill-others --success first --names server,web \"cross-env CURSOR_CONSOLE_PROXY=http://127.0.0.1:1420 cargo run --manifest-path ../../server/Cargo.toml --bin cursor-server\" \"wait-on http-get://127.0.0.1:3000/__byok-api__/healthz && vite\"",
     "serve": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
+    "tauri:dev": "cross-env CURSOR_DESKTOP_FRONTEND=proxy tauri dev",
     "tauri:build": "tauri build"
   },
   "license": "MIT",
